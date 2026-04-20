@@ -90,19 +90,31 @@ Todo 연속 실행기는 세션이 미완료 Todo가 있는 상태로 유휴 상
 
 ## 2. Configuration / 설정
 
-Config file: **`.opencode/easycode.json`** in the worktree or project directory.
+Config file: **`.opencode/easycode.json`** in the worktree, project directory, or global config.
 
-Only `.opencode/easycode.json` is supported. The plugin does **not** read config from `~/.config/opencode/` or any other location.
+EasyCode reads `easycode.json` from up to three locations in decreasing precedence:
 
-설정 파일: 워크트리 또는 프로젝트 디렉터리의 **`.opencode/easycode.json`**.
+| Priority | Path | Scope |
+|----------|------|-------|
+| 1 (highest) | `<worktree>/.opencode/easycode.json` | Worktree-local |
+| 2 | `<project>/.opencode/easycode.json` | Project-local |
+| 3 (lowest) | `~/.config/opencode/easycode.json` | Global |
 
-`.opencode/easycode.json`만 지원됩니다. 플러그인은 `~/.config/opencode/` 또는 다른 위치에서 설정을 읽지 **않습니다**.
+설정 파일: 워크트리, 프로젝트 디렉터리 또는 전역 설정의 **`.opencode/easycode.json`**.
+
+EasyCode는 다음 세 위치에서 `easycode.json`을 우선순위 순으로 읽습니다:
+
+| 우선순위 | 경로 | 범위 |
+|----------|------|------|
+| 1 (최고) | `<worktree>/.opencode/easycode.json` | 워크트리 로컬 |
+| 2 | `<project>/.opencode/easycode.json` | 프로젝트 로컬 |
+| 3 (최저) | `~/.config/opencode/easycode.json` | 전역 |
 
 ### Precedence / 우선순위
 
-The plugin looks for `.opencode/easycode.json` in the worktree directory first. If the worktree config is absent or invalid, EasyCode falls back to the project-directory `.opencode/easycode.json`. When both exist, the worktree config takes precedence. Agent entries in the higher-precedence config fully replace (not deep-merge) fallback entries for the fields the plugin owns (`model`, `variant`, `color`, `temperature`, `permission`). An empty object `{}` for an agent in the higher-precedence config clears all fallback values for that agent's plugin-owned fields.
+The plugin looks for `.opencode/easycode.json` in the worktree directory first, then the project directory, and finally the global `~/.config/opencode/easycode.json`. When multiple configs exist, local config takes precedence for each top-level section. Agent entries in the higher-precedence config fully replace (not deep-merge) fallback entries for the fields the plugin owns (`model`, `variant`, `color`, `temperature`, `permission`). An empty object `{}` for an agent in the higher-precedence config clears all fallback values for that agent's plugin-owned fields.
 
-플러그인은 먼저 워크트리 디렉터리에서 `.opencode/easycode.json`을 찾습니다. 워크트리 설정이 없거나 유효하지 않으면 프로젝트 디렉터리의 `.opencode/easycode.json`으로 폴백합니다. 둘 다 존재하면 워크트리 설정이 우선합니다. 상위 우선순위 설정의 에이전트 항목은 플러그인이 소유한 필드(`model`, `variant`, `color`, `temperature`, `permission`)에 대해 폴백 항목을 완전히 대체합니다(딥 머지 아님). 상위 우선순위 설정에서 에이전트에 대한 빈 객체 `{}`는 해당 에이전트의 플러그인 소유 필드의 모든 폴백 값을 지웁니다.
+플러그인은 먼저 워크트리 디렉터리에서 `.opencode/easycode.json`을 찾고, 그 다음 프로젝트 디렉터리, 마지막으로 전역 `~/.config/opencode/easycode.json`을 확인합니다. 여러 설정이 존재하면 로컬 설정이 각 최상위 섹션에 대해 우선합니다. 상위 우선순위 설정의 에이전트 항목은 플러그인이 소유한 필드(`model`, `variant`, `color`, `temperature`, `permission`)에 대해 폴백 항목을 완전히 대체합니다(딥 머지 아님). 상위 우선순위 설정에서 에이전트에 대한 빈 객체 `{}`는 해당 에이전트의 플러그인 소유 필드의 모든 폴백 값을 지웁니다.
 
 > **Secret handling** / **시크릿 처리**: Do not commit `.opencode/easycode.json` if it contains credentials. Add it to `.gitignore`.
 
@@ -291,37 +303,75 @@ The orchestrator delegates all substantive work to the appropriate skill or suba
 
 ## 4. Install, build, and local use / 설치, 빌드, 로컬 사용
 
-### Build / 빌드
+### GitHub install / GitHub 설치
 
-**package.json** declares the build and install scripts:
+For user installation into any OpenCode project, see [README.opencode.md](README.opencode.md). Quick start:
 
-**package.json**이 빌드 및 설치 스크립트를 선언합니다:
+사용자 설치는 [README.opencode.md](README.opencode.md)를 참조하세요. 빠른 시작:
+
+```jsonc
+// .opencode/config.json
+{
+  "plugin": [
+    "easycode-plugin@git+https://github.com/DevNewbie1826/easycode"
+  ]
+}
+```
+
+### Build (local development) / 빌드 (로컬 개발)
+
+**package.json** declares the build scripts:
+
+**package.json**이 빌드 스크립트를 선언합니다:
 
 ```json
 {
   "name": "easycode-plugin",
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
+  "main": "./src/index.ts",
+  "exports": {
+    ".": {
+      "import": "./src/index.ts"
+    }
+  },
+  "files": [
+    "src/agents",
+    "src/hooks",
+    "src/mcp",
+    "src/skills",
+    "src/tools",
+    "src/config-handler.ts",
+    "src/easycode-config.ts",
+    "src/index.ts"
+  ],
   "scripts": {
-    "build": "bun run build:js && bun run build:types && bun run install:local",
+    "build": "bun run build:js && bun run build:types",
     "build:js": "bun build src/index.ts --outdir dist --target bun --external @opencode-ai/plugin",
     "build:types": "tsc --emitDeclarationOnly",
+    "build:local": "bun run build && bun run install:local",
     "typecheck": "tsc --noEmit",
     "install:local": "mkdir -p .opencode/plugins && cp dist/index.js .opencode/plugins/easycode.ts"
   }
 }
 ```
 
-### Install steps / 설치 단계
+### Local development steps / 로컬 개발 단계
 
 ```bash
 bun install
 bun run build
 ```
 
-The build output is `dist/index.js` and `dist/index.d.ts`. The `install:local` script copies the built plugin to `.opencode/plugins/easycode.ts`.
+The build output is `dist/index.js` and `dist/index.d.ts`. To copy the built plugin for local testing:
 
-빌드 결과물은 `dist/index.js`와 `dist/index.d.ts`입니다. `install:local` 스크립트가 빌드된 플러그인을 `.opencode/plugins/easycode.ts`로 복사합니다.
+빌드 결과물은 `dist/index.js`와 `dist/index.d.ts`입니다. 로컬 테스트를 위해 빌드된 플러그인을 복사하려면:
+
+```bash
+bun run install:local
+```
+
+This creates `.opencode/plugins/easycode.ts` — an explicit developer step that is separate from the build.
+
+이것은 `.opencode/plugins/easycode.ts`를 생성합니다 — 빌드와 별개의 명시적 개발자 단계입니다.
 
 ### Runtime requirements / 런타임 요구사항
 

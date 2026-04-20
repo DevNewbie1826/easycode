@@ -1,8 +1,8 @@
 import { describe, expect, it } from "bun:test"
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs"
-import { tmpdir } from "node:os"
+import { homedir, tmpdir } from "node:os"
 import { join } from "node:path"
-import { loadEasyCodeConfig } from "../easycode-config"
+import { getDefaultGlobalConfigPath, loadEasyCodeConfig } from "../easycode-config"
 
 function createDirectoryWithEasyCodeConfig(content: string) {
   const directory = mkdtempSync(join(tmpdir(), "easycode-config-"))
@@ -502,6 +502,121 @@ describe("loadEasyCodeConfig", () => {
     } finally {
       rmSync(worktreeDirectory, { recursive: true, force: true })
       rmSync(repoDirectory, { recursive: true, force: true })
+    }
+  })
+
+  it("returns the expected default global config path", () => {
+    expect(getDefaultGlobalConfigPath()).toEqual(join(homedir(), ".config", "opencode", "easycode.json"))
+  })
+
+  it("loads global config when no local config is present", () => {
+    const globalRoot = mkdtempSync(join(tmpdir(), "easycode-global-nolocal-"))
+    const globalDir = join(globalRoot, ".config", "opencode")
+    mkdirSync(globalDir, { recursive: true })
+    writeFileSync(join(globalDir, "easycode.json"), JSON.stringify({ agent: { explorer: { model: "global-model" } } }))
+
+    const emptyLocal = mkdtempSync(join(tmpdir(), "easycode-empty-local-"))
+
+    try {
+      const result = loadEasyCodeConfig(emptyLocal, { globalConfigPath: join(globalDir, "easycode.json") })
+      expect(result).toEqual({
+        agent: {
+          explorer: {
+            model: "global-model",
+          },
+        },
+      })
+    } finally {
+      rmSync(globalRoot, { recursive: true, force: true })
+      rmSync(emptyLocal, { recursive: true, force: true })
+    }
+  })
+
+  it("falls through invalid local config to a valid global config", () => {
+    const invalidLocal = createDirectoryWithEasyCodeConfig("{ invalid json")
+    const globalRoot = mkdtempSync(join(tmpdir(), "easycode-global-fallback-"))
+    const globalDir = join(globalRoot, ".config", "opencode")
+    mkdirSync(globalDir, { recursive: true })
+    writeFileSync(join(globalDir, "easycode.json"), JSON.stringify({ agent: { explorer: { model: "global-model" } } }))
+
+    try {
+      const result = loadEasyCodeConfig(invalidLocal, { globalConfigPath: join(globalDir, "easycode.json") })
+      expect(result).toEqual({
+        agent: {
+          explorer: {
+            model: "global-model",
+          },
+        },
+      })
+    } finally {
+      rmSync(invalidLocal, { recursive: true, force: true })
+      rmSync(globalRoot, { recursive: true, force: true })
+    }
+  })
+
+  it("gives local config higher precedence than global for the same section", () => {
+    const localDir = createDirectoryWithEasyCodeConfig(
+      JSON.stringify({ mcp: { websearch: { enabled: true } } }),
+    )
+    const globalRoot = mkdtempSync(join(tmpdir(), "easycode-global-precedence-"))
+    const globalDir = join(globalRoot, ".config", "opencode")
+    mkdirSync(globalDir, { recursive: true })
+    writeFileSync(join(globalDir, "easycode.json"), JSON.stringify({ mcp: { websearch: { enabled: false, apiKey: "global-key" } } }))
+
+    try {
+      const result = loadEasyCodeConfig(localDir, { globalConfigPath: join(globalDir, "easycode.json") })
+      expect(result.mcp?.websearch).toEqual({ enabled: true })
+    } finally {
+      rmSync(localDir, { recursive: true, force: true })
+      rmSync(globalRoot, { recursive: true, force: true })
+    }
+  })
+
+  it("gives project config higher precedence than global when worktree is absent", () => {
+    const projectDir = createDirectoryWithEasyCodeConfig(
+      JSON.stringify({ agent: { explorer: { model: "project-model" } } }),
+    )
+    const globalRoot = mkdtempSync(join(tmpdir(), "easycode-global-proj-"))
+    const globalDir = join(globalRoot, ".config", "opencode")
+    mkdirSync(globalDir, { recursive: true })
+    writeFileSync(join(globalDir, "easycode.json"), JSON.stringify({ agent: { explorer: { model: "global-model" } } }))
+
+    try {
+      const result = loadEasyCodeConfig(projectDir, { globalConfigPath: join(globalDir, "easycode.json") })
+      expect(result).toEqual({
+        agent: {
+          explorer: {
+            model: "project-model",
+          },
+        },
+      })
+    } finally {
+      rmSync(projectDir, { recursive: true, force: true })
+      rmSync(globalRoot, { recursive: true, force: true })
+    }
+  })
+
+  it("treats invalid global config the same as an absent global file", () => {
+    const localDir = createDirectoryWithEasyCodeConfig(
+      JSON.stringify({ agent: { explorer: { model: "local-model" } } }),
+    )
+    const globalRoot = mkdtempSync(join(tmpdir(), "easycode-global-invalid-"))
+    const globalDir = join(globalRoot, ".config", "opencode")
+    mkdirSync(globalDir, { recursive: true })
+    writeFileSync(join(globalDir, "easycode.json"), "{ broken")
+
+    try {
+      const result = loadEasyCodeConfig(localDir, { globalConfigPath: join(globalDir, "easycode.json") })
+      expect(result).toEqual({
+        agent: {
+          explorer: {
+            model: "local-model",
+          },
+        },
+      })
+    } finally {
+      rmSync(localDir, { recursive: true, force: true })
+      rmSync(globalRoot, { recursive: true, force: true })
     }
   })
 

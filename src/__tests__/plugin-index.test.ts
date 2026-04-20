@@ -1,13 +1,15 @@
 import { describe, expect, it } from "bun:test"
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
+import { spawnSync } from "node:child_process"
 import { tmpdir } from "node:os"
-import { join } from "node:path"
+import { join, resolve } from "node:path"
 import type { Config, Hooks, PluginInput } from "@opencode-ai/plugin"
 import { TODO_REQUIRED_BLOCK_MESSAGE, TODO_STALE_REMINDER } from "../hooks/todo-tool-guard/constants"
 import { SKILL_BOOTSTRAP_MARKER } from "../hooks/skill-bootstrap"
 import { EasyCodePlugin } from "../index"
 
 const worktreeRoot = join(import.meta.dir, "..", "..")
+const pluginRoot = resolve(worktreeRoot, "src", "index.ts")
 const bootstrapMarkdown = readFileSync(
   join(worktreeRoot, "src", "hooks", "skill-bootstrap", "skill-bootstrap.md"),
   "utf8",
@@ -666,6 +668,97 @@ describe("EasyCodePlugin", () => {
     } finally {
       rmSync(directory, { recursive: true, force: true })
       rmSync(worktree, { recursive: true, force: true })
+    }
+  })
+
+  it("falls back to global easycode.json when local config is absent", async () => {
+    const fakeHome = mkdtempSync(join(tmpdir(), "easycode-plugin-fake-home-"))
+    const globalConfigDir = join(fakeHome, ".config", "opencode")
+    const directory = mkdtempSync(join(tmpdir(), "easycode-plugin-no-local-"))
+    const worktree = mkdtempSync(join(tmpdir(), "easycode-plugin-no-local-wt-"))
+
+    mkdirSync(globalConfigDir, { recursive: true })
+    writeFileSync(join(globalConfigDir, "easycode.json"), JSON.stringify({ mcp: { websearch: { enabled: true } } }))
+
+    try {
+      const result = spawnSync(
+        "bun",
+        ["-e", `
+          const { EasyCodePlugin } = await import("${pluginRoot}");
+          const hooks = await EasyCodePlugin({
+            client: { app: { log() { return Promise.resolve() } } },
+            project: "test-project",
+            directory: "${directory}",
+            worktree: "${worktree}",
+            serverUrl: new URL("https://example.com"),
+            $: {},
+          });
+          const config = { mcp: {} };
+          await hooks.config?.(config);
+          console.log(JSON.stringify(config.mcp));
+        `],
+        { env: { ...process.env, HOME: fakeHome }, encoding: "utf-8" },
+      )
+
+      expect(result.status).toBe(0)
+      const mcp = JSON.parse(result.stdout.trim())
+
+      expect(mcp).toEqual({
+        context7: { type: "remote", url: "https://mcp.context7.com/mcp" },
+        grep_app: { type: "remote", url: "https://mcp.grep.app" },
+        sequential_thinking: { type: "local", command: ["npx", "-y", "@modelcontextprotocol/server-sequential-thinking"] },
+        websearch: { type: "remote", url: "https://mcp.exa.ai/mcp" },
+      })
+    } finally {
+      rmSync(fakeHome, { recursive: true, force: true })
+      rmSync(directory, { recursive: true, force: true })
+      rmSync(worktree, { recursive: true, force: true })
+    }
+  })
+
+  it("prefers local easycode.json over global through the real config hook path", async () => {
+    const fakeHome = mkdtempSync(join(tmpdir(), "easycode-plugin-fake-home-prio-"))
+    const globalConfigDir = join(fakeHome, ".config", "opencode")
+    const localDir = mkdtempSync(join(tmpdir(), "easycode-plugin-local-prio-"))
+    const localConfigDir = join(localDir, ".opencode")
+
+    mkdirSync(localConfigDir, { recursive: true })
+    writeFileSync(join(localConfigDir, "easycode.json"), JSON.stringify({ mcp: { websearch: { enabled: false } } }))
+    mkdirSync(globalConfigDir, { recursive: true })
+    writeFileSync(join(globalConfigDir, "easycode.json"), JSON.stringify({ mcp: { websearch: { enabled: true, apiKey: "global-key" } } }))
+
+    try {
+      const result = spawnSync(
+        "bun",
+        ["-e", `
+          const { EasyCodePlugin } = await import("${pluginRoot}");
+          const hooks = await EasyCodePlugin({
+            client: { app: { log() { return Promise.resolve() } } },
+            project: "test-project",
+            directory: "${localDir}",
+            worktree: "${localDir}",
+            serverUrl: new URL("https://example.com"),
+            $: {},
+          });
+          const config = { mcp: {} };
+          await hooks.config?.(config);
+          console.log(JSON.stringify(config.mcp));
+        `],
+        { env: { ...process.env, HOME: fakeHome }, encoding: "utf-8" },
+      )
+
+      expect(result.status).toBe(0)
+      const mcp = JSON.parse(result.stdout.trim())
+
+      expect(mcp).toEqual({
+        context7: { type: "remote", url: "https://mcp.context7.com/mcp" },
+        grep_app: { type: "remote", url: "https://mcp.grep.app" },
+        sequential_thinking: { type: "local", command: ["npx", "-y", "@modelcontextprotocol/server-sequential-thinking"] },
+        websearch: { type: "remote", url: "https://mcp.exa.ai/mcp", enabled: false },
+      })
+    } finally {
+      rmSync(fakeHome, { recursive: true, force: true })
+      rmSync(localDir, { recursive: true, force: true })
     }
   })
 })

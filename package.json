@@ -3,24 +3,27 @@
   "version": "0.1.0",
   "description": "OpenCode plugin base scaffold",
   "type": "module",
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
+  "main": "./src/index.ts",
   "exports": {
     ".": {
-      "import": "./dist/index.js",
-      "types": "./dist/index.d.ts"
+      "import": "./src/index.ts"
     }
   },
   "files": [
-    "dist",
     "src/agents",
-    "src/hooks/skill-bootstrap",
-    "src/skills"
+    "src/hooks",
+    "src/mcp",
+    "src/skills",
+    "src/tools",
+    "src/config-handler.ts",
+    "src/easycode-config.ts",
+    "src/index.ts"
   ],
   "scripts": {
-    "build": "bun run build:js && bun run build:types && bun run install:local",
+    "build": "bun run build:js && bun run build:types",
     "build:js": "bun build src/index.ts --outdir dist --target bun --external @opencode-ai/plugin",
     "build:types": "tsc --emitDeclarationOnly",
+    "build:local": "bun run build && bun run install:local",
     "dev": "bun build src/index.ts --outdir dist --target bun --watch --external @opencode-ai/plugin",
     "typecheck": "tsc --noEmit",
     "install:local": "mkdir -p .opencode/plugins && cp dist/index.js .opencode/plugins/easycode.ts",
@@ -41,5 +44,19 @@
     "ai",
     "coding"
   ],
-  "license": "MIT"
+  "license": "MIT",
+  "directories": {
+    "doc": "docs"
+  },
+  "dependencies": {
+    "cross-spawn": "^7.0.6",
+    "isexe": "^2.0.0",
+    "path-key": "^3.1.1",
+    "shebang-command": "^2.0.0",
+    "shebang-regex": "^3.0.0",
+    "undici-types": "^7.18.2",
+    "which": "^2.0.2",
+    "zod": "^4.1.8"
+  },
+  "author": ""
 }
