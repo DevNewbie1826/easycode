@@ -5,6 +5,19 @@ description: Use when encountering any bug, test failure, or unexpected behavior
 
 # Systematic Debugging
 
+## Required Pairing
+
+This skill should be used with the **Debugger** sub-agent when available.
+
+- The **Debugger** sub-agent is the execution owner for this skill.
+- This skill defines the debugging workflow.
+- The agent provides role discipline, reporting format, escalation behavior, and minimal-fix guardrails.
+- If a specialized debugging sub-agent is available, prefer that sub-agent over a general-purpose coding agent.
+
+**Operating rule:** Activate this skill first, then perform the task through the Debugger sub-agent.
+
+---
+
 ## Overview
 
 Random fixes waste time and create new bugs. Quick patches hide symptoms instead of solving causes.
@@ -45,6 +58,24 @@ Use this skill for any technical issue:
 - Someone wants it fixed immediately
 
 Systematic debugging is faster than thrashing.
+
+## Execution Contract with the Debugger Sub-Agent
+
+When paired with the Debugger sub-agent, the following rules apply:
+
+- The sub-agent must not propose fixes before Phase 1 is sufficiently completed.
+- The sub-agent must use this skill as required operating procedure, not optional advice.
+- The sub-agent should report findings in a structured debugging format with:
+  - Symptom
+  - Root Cause
+  - Reproduction
+  - Evidence
+  - Minimal Fix
+  - Verification
+- The sub-agent must escalate after 3 failed hypotheses rather than continue random attempts.
+- The sub-agent should prefer minimal diffs and avoid unrelated refactoring.
+
+---
 
 ## The Four Phases
 
@@ -220,7 +251,7 @@ Before fixing:
 
 This step is mandatory.
 
-Use `superpowers:test-driven-development` for writing the failing test correctly.
+Use `test-driven-development` for writing the failing test correctly.
 
 ### 2. Implement a Single Fix
 

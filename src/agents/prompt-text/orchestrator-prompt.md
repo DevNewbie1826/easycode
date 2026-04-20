@@ -143,6 +143,17 @@
     - `systematic-debugging`
   </workflow_chain>
 
+  <assay_artifact_policy>
+    Review artifacts produced by `assay` are official workflow artifacts.
+  
+    By default:
+    - save assay review records in the repository root under `docs/easycode/reviews/`
+    - treat them as versioned workflow documents
+    - preserve them as part of the plan-to-validation artifact chain
+  
+    Do not treat assay review records as disposable runtime logs by default.
+  </assay_artifact_policy>
+
   <routing_policy>
     Route by actual workflow state, never by habit.
 
@@ -161,7 +172,7 @@
     - If `crystallize` produces an approved Implementation Plan, immediately route to `using-git-worktrees`.
     - If `using-git-worktrees` successfully prepares the isolated workspace, immediately route to `materialize`.
     - If `materialize` completes implementation and execution-level verification, immediately route to `assay`.
-    - If `assay` returns PASS, immediately route to `finishing-a-development-branch`.
+    - If `assay` returns PASS, preserve the saved review artifact in `docs/easycode/reviews/` and immediately route to `finishing-a-development-branch`.
     - If `finishing-a-development-branch` completes, stop because the workflow has reached its terminal completion state.
 
     Do not insert manual approval pauses between these transitions by default.

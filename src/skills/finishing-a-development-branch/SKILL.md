@@ -233,3 +233,7 @@ git worktree remove <worktree-path>
 
 **Pairs with:**
 - using-git-worktrees
+
+**Also inspect:**
+- the latest assay review record in `docs/easycode/reviews/`
+- the implementation plan in `docs/easycode/plans/`

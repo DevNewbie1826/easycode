@@ -141,6 +141,7 @@ Independently reviews the completed implementation in the active worktree agains
 5. Do not skip the saved review record.
 6. Do not merge, create a PR, or treat the work as complete before Assay has passed.
 7. Do not rely on verbal summaries when the plan and worktree can be inspected directly.
+8. Save the final review record in the repository root `docs/easycode/reviews/` path by default unless the user explicitly requests another location.
 
 ---
 
@@ -208,7 +209,14 @@ Default save location:
 
 `/docs/easycode/reviews/YYYY-MM-DD-<feature-name>-assay.md`
 
-If the user prefers another path, use that instead.
+This review record is an official workflow artifact.
+Treat it as part of the repository’s documented execution history.
+
+It is not incidental runtime output.
+It is not a disposable temporary log.
+It is part of the plan-to-validation artifact chain.
+
+If the user explicitly requests another path, use that path instead.
 
 The review record must include:
 - verdict
@@ -264,6 +272,14 @@ Return to:
 When returning to `materialize` for fixes, the failure should be treated as input to `systematic-debugging` before new code changes are attempted.
 
 Do not guess the wrong layer of failure.
+
+---
+
+## Workflow Artifact Note
+
+The assay review record stored under `docs/easycode/reviews/` is part of the repository’s workflow artifact chain.
+
+Together with the implementation plan in `docs/easycode/plans/`, it serves as an auditable record for execution, validation, and branch completion decisions.
 
 ---
 

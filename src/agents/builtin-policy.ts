@@ -84,10 +84,23 @@ export const builtinAgentPermissionPolicy: Record<
   },
   finalReviewerAgent: {
     ...denyEditPatchEtc,
+    edit: "allow",
     task: "deny",
   },
   completionVerifierAgent: {
     ...denyEditPatchEtc,
+    edit: "allow",
+    bash: "allow",
     task: "deny",
+  },
+  debugger: {
+    edit: "allow",
+    apply_patch: "deny",
+    todowrite: "allow",
+    task: {
+      "*": "deny",
+      explorer: "allow",
+      librarian: "allow",
+    },
   },
 };

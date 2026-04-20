@@ -115,6 +115,8 @@ They constrain how `materialize` executes.
 - must follow `test-driven-development` when feasible
 - must run LSP diagnostics if available
 - must run task verification before reporting completion
+- each invocation must use a **fresh isolated builder instance**
+- do not rely on memory from any previous `code-builder` run
 
 ### code-spec-reviewer
 - fully read-only
@@ -161,6 +163,7 @@ They constrain how `materialize` executes.
 11. Always run the execution-level final verification gate before handing off to `assay`.
 12. If any bug, failed test, regression, or unexpected behavior is encountered, invoke `systematic-debugging` before proposing or attempting a fix.
 13. Use `todo-sync` before execution begins, after each completed task, and after all work is finished.
+14. Never reuse the same `code-builder` instance across passes.
 
 ---
 
@@ -224,9 +227,9 @@ For each task, run this exact sequence:
 
 1. `code-builder`
 2. `code-spec-reviewer`
-3. if spec review fails → return to `code-builder`
+3. if spec review fails → dispatch a **new fresh** `code-builder`
 4. once spec passes → `code-quality-reviewer`
-5. if quality review fails → return to `code-builder`
+5. if quality review fails → dispatch a **new fresh** `code-builder`
 6. once both pass → run task verification if not already completed
 7. invoke `todo-sync` to mark the task complete
 8. move to the next task
@@ -246,7 +249,7 @@ Dispatch `code-builder` with:
 
 If `code-builder` returns:
 - `DONE` or `DONE_WITH_CONCERNS` → proceed to spec review
-- `NEEDS_CONTEXT` → provide missing context if available, then re-dispatch
+- `NEEDS_CONTEXT` → provide missing context if available, then re-dispatch a **new fresh** `code-builder`
 - `BLOCKED` → stop and report the blocker unless it can be resolved directly through missing context
 
 ### Phase 5: Spec Review
@@ -258,7 +261,7 @@ Dispatch `code-spec-reviewer` with:
 - original `Requirements Brief` if available
 
 If spec review fails:
-- send the failure back to `code-builder`
+- send the failure back to a **new fresh** `code-builder`
 - re-run implementation for that same task
 - do not proceed to quality review yet
 
@@ -273,7 +276,7 @@ Provide:
 - diagnostics / verification results if available
 
 If quality review fails:
-- return the findings to `code-builder`
+- return the findings to a **new fresh** `code-builder`
 - re-run implementation for the same task
 - re-run spec review if the fixes materially affect compliance
 - then re-run quality review
@@ -289,7 +292,7 @@ If any of the following occurs:
 then:
 1. invoke `systematic-debugging`
 2. identify the failure mode, reproduction path, likely cause, and confidence level
-3. only then return findings to `code-builder` for a targeted fix
+3. only then return findings to a **new fresh** `code-builder` for a targeted fix
 4. re-run the relevant review gates after the fix
 
 Do not jump straight from failure to code changes.
@@ -317,7 +320,7 @@ This gate must verify:
 If the final gate fails:
 1. invoke `systematic-debugging`
 2. diagnose the likely integration or execution gap
-3. apply a targeted fix through `code-builder`
+3. apply a targeted fix through a **new fresh** `code-builder`
 4. re-run the relevant review gates if the fix changes task behavior
 5. re-run the final verification gate
 
