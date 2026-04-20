@@ -16,6 +16,23 @@ This skill should be used with the **Debugger** sub-agent when available.
 
 **Operating rule:** Activate this skill first, then perform the task through the Debugger sub-agent.
 
+### Supporting Discovery Agents
+
+When available, use supporting discovery agents for search and evidence gathering:
+
+- **Contextual Grep** for internal codebase discovery, pattern search, implementation tracing, repository structure, configs, tests, internal docs, and project-specific logic
+- **Reference Grep** for external docs, OSS, APIs, best practices, migration notes, version differences, and unfamiliar third-party libraries
+
+These supporting agents may assist evidence gathering, but **root-cause judgment, hypothesis control, fix decisions, and final verification remain with the Debugger sub-agent**.
+
+### Delegation Boundaries
+
+- Supporting agents may be used for search, discovery, and reference gathering
+- Supporting agents should not own the root-cause conclusion
+- Supporting agents should not choose the final fix
+- Supporting agents should not own final verification
+- Once a search has been delegated, do not manually duplicate the same search unless intentionally doing non-overlapping work
+
 ---
 
 ## Overview
@@ -74,6 +91,7 @@ When paired with the Debugger sub-agent, the following rules apply:
   - Verification
 - The sub-agent must escalate after 3 failed hypotheses rather than continue random attempts.
 - The sub-agent should prefer minimal diffs and avoid unrelated refactoring.
+- The sub-agent may delegate discovery work, but must retain debugging judgment and fix ownership.
 
 ---
 
@@ -157,6 +175,26 @@ Trace backward:
 
 Use `root-cause-tracing.md` for the full tracing method.
 
+### 6. Use Discovery Agents Appropriately
+
+Use supporting discovery agents when evidence gathering is broad or unfamiliar:
+
+- Use **Contextual Grep** when:
+  - Multiple internal search angles are needed
+  - The module structure is unfamiliar
+  - Cross-layer pattern discovery is needed
+  - Internal implementation tracing is needed
+  - Project-specific conventions must be discovered
+
+- Use **Reference Grep** when:
+  - Official external behavior must be verified
+  - Third-party library usage is unclear
+  - Framework best practice is relevant
+  - External dependency behavior may explain the issue
+  - Migration notes or version differences matter
+
+Delegating search does not delegate reasoning ownership.
+
 ---
 
 ## Phase 2: Pattern Analysis
@@ -194,6 +232,12 @@ Check:
 - Required sequencing
 - Hidden assumptions
 - Dependency side effects
+
+### 5. Use Search Results to Support Comparison, Not Replace It
+
+- Discovery agents can help find working references and similar patterns
+- The Debugger sub-agent must still compare and interpret the differences
+- Do not let search output stand in for actual debugging judgment
 
 ---
 
@@ -236,6 +280,14 @@ If you do not understand something, say so.
 
 Pretending to understand is how debugging turns into guessing.
 
+### 5. Keep Ownership Centralized
+
+Even if search or reference discovery was delegated:
+
+- The Debugger sub-agent must decide whether the hypothesis is supported
+- The Debugger sub-agent must decide whether to proceed
+- The Debugger sub-agent must decide what exactly is being tested
+
 ---
 
 ## Phase 4: Implementation
@@ -251,7 +303,7 @@ Before fixing:
 
 This step is mandatory.
 
-Use `test-driven-development` for writing the failing test correctly.
+Use `superpowers:test-driven-development` for writing the failing test correctly.
 
 ### 2. Implement a Single Fix
 
