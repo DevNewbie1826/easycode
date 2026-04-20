@@ -9,6 +9,7 @@ import { registerSkillPath, resolvePluginSkillPath } from "./skills/path-registr
 
 type CreateConfigHandlerOptions = {
   moduleDir?: string
+  globalConfigPath?: string
 }
 
 const defaultModuleDir = dirname(fileURLToPath(import.meta.url))
@@ -101,7 +102,8 @@ export function createConfigHandler(
 
   return async (config: Record<string, unknown>) => {
     const builtinAgentRegistry = await builtinAgentRegistryPromise
-    const userConfig = loadEasyCodeConfig(fallbackDirectory && fallbackDirectory !== directory ? [directory, fallbackDirectory] : directory)
+    const loadOptions = options.globalConfigPath ? { globalConfigPath: options.globalConfigPath } : undefined
+    const userConfig = loadEasyCodeConfig(fallbackDirectory && fallbackDirectory !== directory ? [directory, fallbackDirectory] : directory, loadOptions)
     const builtinMcpServers = createBuiltinMcpServers(userConfig.mcp?.websearch)
     const existingMcp = isRecord(config.mcp) ? config.mcp : {}
     const mergedMcp: Record<string, unknown> = cloneBuiltinMcpServers(builtinMcpServers)

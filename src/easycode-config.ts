@@ -1,4 +1,5 @@
 import { existsSync, readFileSync } from "node:fs"
+import { homedir } from "node:os"
 import { join } from "node:path"
 import type { AgentPermission, AgentPermissionRule, AgentPermissionValue } from "./agents/types"
 
@@ -190,10 +191,21 @@ function mergeEasyCodeConfig(current: EasyCodeConfig, fallback: EasyCodeConfig):
   }
 }
 
-export function loadEasyCodeConfig(directories: string | readonly string[]): EasyCodeConfig {
+export type LoadEasyCodeConfigOptions = {
+  globalConfigPath?: string
+}
+
+export function getDefaultGlobalConfigPath(): string {
+  return join(homedir(), ".config", "opencode", "easycode.json")
+}
+
+export function loadEasyCodeConfig(directories: string | readonly string[], options: LoadEasyCodeConfigOptions = {}): EasyCodeConfig {
+  const globalConfigPath = options.globalConfigPath ?? getDefaultGlobalConfigPath()
   let mergedConfig: EasyCodeConfig = {}
 
-  for (const directory of Array.isArray(directories) ? directories : [directories]) {
+  const allDirectories = [...(Array.isArray(directories) ? directories : [directories])]
+
+  for (const directory of allDirectories) {
     const configPath = join(directory, ".opencode", "easycode.json")
 
     if (!existsSync(configPath)) {
@@ -210,6 +222,18 @@ export function loadEasyCodeConfig(directories: string | readonly string[]): Eas
       mergedConfig = mergeEasyCodeConfig(mergedConfig, config)
     } catch {
       continue
+    }
+  }
+
+  if (existsSync(globalConfigPath)) {
+    try {
+      const config = normalizeEasyCodeConfig(JSON.parse(readFileSync(globalConfigPath, "utf-8")))
+
+      if (Object.keys(config).length > 0) {
+        mergedConfig = mergeEasyCodeConfig(mergedConfig, config)
+      }
+    } catch {
+      // Invalid global config is treated the same as absent
     }
   }
 
