@@ -1097,4 +1097,42 @@ describe("createConfigHandler", () => {
       }),
     })
   })
+
+  it("falls back to global easycode.json when no local config exists", async () => {
+    const emptyDirectory = mkdtempSync(join(tmpdir(), "easycode-config-handler-empty-"))
+    const globalRoot = mkdtempSync(join(tmpdir(), "easycode-config-handler-global-"))
+    const globalDir = join(globalRoot, ".config", "opencode")
+    mkdirSync(globalDir, { recursive: true })
+    writeFileSync(join(globalDir, "easycode.json"), JSON.stringify({ mcp: { websearch: { enabled: true } } }))
+
+    try {
+      const config: Record<string, unknown> = { mcp: {} }
+
+      await createConfigHandler(emptyDirectory, undefined, { globalConfigPath: join(globalDir, "easycode.json") })(config)
+
+      expect(config.mcp).toEqual(builtinMcpWithWebsearch())
+    } finally {
+      rmSync(emptyDirectory, { recursive: true, force: true })
+      rmSync(globalRoot, { recursive: true, force: true })
+    }
+  })
+
+  it("gives local easycode.json higher precedence than global for websearch config", async () => {
+    const localDirectory = createDirectoryWithEasyCodeConfig(JSON.stringify({ mcp: { websearch: { enabled: false } } }))
+    const globalRoot = mkdtempSync(join(tmpdir(), "easycode-config-handler-precedence-"))
+    const globalDir = join(globalRoot, ".config", "opencode")
+    mkdirSync(globalDir, { recursive: true })
+    writeFileSync(join(globalDir, "easycode.json"), JSON.stringify({ mcp: { websearch: { enabled: true, apiKey: "global-key" } } }))
+
+    try {
+      const config: Record<string, unknown> = { mcp: {} }
+
+      await createConfigHandler(localDirectory, undefined, { globalConfigPath: join(globalDir, "easycode.json") })(config)
+
+      expect(config.mcp).toEqual(builtinMcpWithWebsearch({ enabled: false }))
+    } finally {
+      rmSync(localDirectory, { recursive: true, force: true })
+      rmSync(globalRoot, { recursive: true, force: true })
+    }
+  })
 })
