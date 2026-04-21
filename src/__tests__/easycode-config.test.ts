@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test"
+import { afterAll, describe, expect, it } from "bun:test"
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs"
 import { homedir, tmpdir } from "node:os"
 import { join } from "node:path"
@@ -12,6 +12,17 @@ function createDirectoryWithEasyCodeConfig(content: string) {
   writeFileSync(join(configDirectory, "easycode.json"), content)
 
   return directory
+}
+
+const isolatedGlobalConfigRoot = mkdtempSync(join(tmpdir(), "easycode-global-empty-"))
+const isolatedGlobalConfigPath = join(isolatedGlobalConfigRoot, "easycode.json")
+
+afterAll(() => {
+  rmSync(isolatedGlobalConfigRoot, { recursive: true, force: true })
+})
+
+function loadIsolatedEasyCodeConfig(directories: string | readonly string[]) {
+  return loadEasyCodeConfig(directories, { globalConfigPath: isolatedGlobalConfigPath })
 }
 
 describe("loadEasyCodeConfig", () => {
@@ -29,7 +40,7 @@ describe("loadEasyCodeConfig", () => {
     )
 
     try {
-      expect(loadEasyCodeConfig(directory)).toEqual({
+      expect(loadIsolatedEasyCodeConfig(directory)).toEqual({
         agent: {
           explorer: {
             model: "gpt-5",
@@ -64,7 +75,7 @@ describe("loadEasyCodeConfig", () => {
     )
 
     try {
-      expect(loadEasyCodeConfig(directory)).toEqual({
+      expect(loadIsolatedEasyCodeConfig(directory)).toEqual({
         agent: {
           explorer: {
             model: "gpt-5",
@@ -97,7 +108,7 @@ describe("loadEasyCodeConfig", () => {
     )
 
     try {
-      expect(loadEasyCodeConfig(directory)).toEqual({
+      expect(loadIsolatedEasyCodeConfig(directory)).toEqual({
         agent: {
           explorer: {
             model: "gpt-5",
@@ -123,7 +134,7 @@ describe("loadEasyCodeConfig", () => {
     )
 
     try {
-      expect(loadEasyCodeConfig(directory)).toEqual({
+      expect(loadIsolatedEasyCodeConfig(directory)).toEqual({
         mcp: {
           websearch: {
             enabled: true,
@@ -157,7 +168,7 @@ describe("loadEasyCodeConfig", () => {
     )
 
     try {
-      expect(loadEasyCodeConfig([worktreeDirectory, repoDirectory])).toEqual({
+      expect(loadIsolatedEasyCodeConfig([worktreeDirectory, repoDirectory])).toEqual({
         mcp: {
           websearch: {
             enabled: true,
@@ -203,7 +214,7 @@ describe("loadEasyCodeConfig", () => {
     )
 
     try {
-      expect(loadEasyCodeConfig([worktreeDirectory, repoDirectory])).toEqual({
+      expect(loadIsolatedEasyCodeConfig([worktreeDirectory, repoDirectory])).toEqual({
         agent: {
           explorer: {
             model: "gpt-5",
@@ -244,7 +255,7 @@ describe("loadEasyCodeConfig", () => {
     )
 
     try {
-      expect(loadEasyCodeConfig([worktreeDirectory, repoDirectory])).toEqual({
+      expect(loadIsolatedEasyCodeConfig([worktreeDirectory, repoDirectory])).toEqual({
         agent: {
           explorer: {
             model: "gpt-5",
@@ -284,7 +295,7 @@ describe("loadEasyCodeConfig", () => {
     )
 
     try {
-      expect(loadEasyCodeConfig(directory)).toEqual({
+      expect(loadIsolatedEasyCodeConfig(directory)).toEqual({
         agent: {
           explorer: {
             permission: {
@@ -327,7 +338,7 @@ describe("loadEasyCodeConfig", () => {
     )
 
     try {
-      expect(loadEasyCodeConfig(directory)).toEqual({
+      expect(loadIsolatedEasyCodeConfig(directory)).toEqual({
         agent: {
           explorer: {
             permission: {
@@ -371,7 +382,7 @@ describe("loadEasyCodeConfig", () => {
     )
 
     try {
-      expect(loadEasyCodeConfig(directory)).toEqual({
+      expect(loadIsolatedEasyCodeConfig(directory)).toEqual({
         agent: {
           explorer: {
             permission: {
@@ -417,7 +428,7 @@ describe("loadEasyCodeConfig", () => {
     )
 
     try {
-      expect(loadEasyCodeConfig(directory)).toEqual({
+      expect(loadIsolatedEasyCodeConfig(directory)).toEqual({
         agent: {
           explorer: {
             permission: {
@@ -455,7 +466,7 @@ describe("loadEasyCodeConfig", () => {
     )
 
     try {
-      expect(loadEasyCodeConfig([worktreeDirectory, repoDirectory])).toEqual({
+      expect(loadIsolatedEasyCodeConfig([worktreeDirectory, repoDirectory])).toEqual({
         agent: {
           explorer: {},
         },
@@ -492,7 +503,7 @@ describe("loadEasyCodeConfig", () => {
     )
 
     try {
-      expect(loadEasyCodeConfig([worktreeDirectory, repoDirectory])).toEqual({
+      expect(loadIsolatedEasyCodeConfig([worktreeDirectory, repoDirectory])).toEqual({
         agent: {
           explorer: {
             permission: {},
@@ -636,7 +647,7 @@ describe("loadEasyCodeConfig", () => {
     )
 
     try {
-      expect(loadEasyCodeConfig(directory)).toEqual({
+      expect(loadIsolatedEasyCodeConfig(directory)).toEqual({
         agent: {
           explorer: {
             model: "gpt-5",

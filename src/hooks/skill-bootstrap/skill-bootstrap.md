@@ -31,6 +31,7 @@
     4. Default behavior
 
     If a skill conflicts with a higher-priority instruction, follow the higher-priority instruction.
+    The bootstrap block is guidance and must not override higher-priority instructions.
   </PRIORITY_ORDER>
 
   <REQUIRED_BEHAVIOR>

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test"
+import { afterAll, describe, expect, it } from "bun:test"
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join, normalize } from "node:path"
@@ -7,6 +7,7 @@ import codeBuilderAgent from "../agents/definitions/code-builder.agent"
 import codeQualityReviewerAgent from "../agents/definitions/code-quality-reviewer.agent"
 import codeSpecReviewerAgent from "../agents/definitions/code-spec-reviewer.agent"
 import completionVerifierAgent from "../agents/definitions/completion-verifier.agent"
+import debuggerAgent from "../agents/definitions/debugger.agent"
 import explorerAgent from "../agents/definitions/explorer.agent"
 import finalReviewerAgent from "../agents/definitions/final-reviewer.agent"
 import librarianAgent from "../agents/definitions/librarian.agent"
@@ -14,6 +15,7 @@ import orchestratorAgent from "../agents/definitions/orchestrator.agent"
 import planChallengerAgent from "../agents/definitions/plan-challenger.agent"
 import planCheckerAgent from "../agents/definitions/plan-checker.agent"
 import plannerAgent from "../agents/definitions/planner.agent"
+import { loadBuiltinAgentRegistry } from "../agents/registry"
 import { createConfigHandler } from "../config-handler"
 
 function builtinMcp() {
@@ -198,6 +200,20 @@ function builtinCompletionVerifierAgent(overrides: Record<string, unknown> = {})
   }
 }
 
+function builtinDebuggerAgent(overrides: Record<string, unknown> = {}) {
+  return {
+    description: debuggerAgent.description,
+    prompt: debuggerAgent.prompt,
+    mode: debuggerAgent.mode,
+    ...(typeof debuggerAgent.defaults?.color === "string" ? { color: debuggerAgent.defaults.color } : {}),
+    ...(typeof debuggerAgent.defaults?.temperature === "number"
+      ? { temperature: debuggerAgent.defaults.temperature }
+      : {}),
+    ...(debuggerAgent.defaults?.permission ? { permission: debuggerAgent.defaults.permission } : {}),
+    ...overrides,
+  }
+}
+
 function builtinFinalReviewerAgent(overrides: Record<string, unknown> = {}) {
   return {
     description: finalReviewerAgent.description,
@@ -234,6 +250,7 @@ function builtinManagedAgents(
     "code-quality-reviewer"?: Record<string, unknown>
     "code-spec-reviewer"?: Record<string, unknown>
     "completion-verifier"?: Record<string, unknown>
+    Debugger?: Record<string, unknown>
     explorer?: Record<string, unknown>
     "final-reviewer"?: Record<string, unknown>
     librarian?: Record<string, unknown>
@@ -248,6 +265,7 @@ function builtinManagedAgents(
     "code-quality-reviewer": builtinCodeQualityReviewerAgent(overrides["code-quality-reviewer"]),
     "code-spec-reviewer": builtinCodeSpecReviewerAgent(overrides["code-spec-reviewer"]),
     "completion-verifier": builtinCompletionVerifierAgent(overrides["completion-verifier"]),
+    Debugger: builtinDebuggerAgent(overrides.Debugger),
     explorer: builtinExplorerAgent(overrides.explorer),
     "final-reviewer": builtinFinalReviewerAgent(overrides["final-reviewer"]),
     librarian: builtinLibrarianAgent(overrides.librarian),
@@ -279,11 +297,29 @@ function createPluginLayout() {
   return { sandboxDir, moduleDir, skillPath }
 }
 
+const isolatedGlobalConfigRoot = mkdtempSync(join(tmpdir(), "easycode-config-handler-global-empty-"))
+const isolatedGlobalConfigPath = join(isolatedGlobalConfigRoot, "easycode.json")
+
+afterAll(() => {
+  rmSync(isolatedGlobalConfigRoot, { recursive: true, force: true })
+})
+
+function createScopedConfigHandler(
+  directory: string,
+  fallbackDirectory?: string,
+  options: { moduleDir?: string; globalConfigPath?: string } = {},
+) {
+  return createConfigHandler(directory, fallbackDirectory, {
+    ...options,
+    globalConfigPath: options.globalConfigPath ?? isolatedGlobalConfigPath,
+  })
+}
+
 describe("createConfigHandler", () => {
   it("injects builtin MCP defaults when config.mcp is empty", async () => {
     const config: Record<string, unknown> = { mcp: {} }
 
-    await createConfigHandler("/test/directory")(config)
+    await createScopedConfigHandler("/test/directory")(config)
 
     expect(config.mcp).toEqual(builtinMcp())
   })
@@ -296,7 +332,7 @@ describe("createConfigHandler", () => {
     try {
       const config: Record<string, unknown> = { mcp: {} }
 
-      await createConfigHandler(directory)(config)
+      await createScopedConfigHandler(directory)(config)
 
       expect(config.mcp).toEqual(
         builtinMcpWithWebsearch({
@@ -314,7 +350,7 @@ describe("createConfigHandler", () => {
     try {
       const config: Record<string, unknown> = { mcp: {} }
 
-      await createConfigHandler(directory)(config)
+      await createScopedConfigHandler(directory)(config)
 
       expect(config.mcp).toEqual(builtinMcpWithWebsearch({ enabled: false }))
     } finally {
@@ -330,7 +366,7 @@ describe("createConfigHandler", () => {
     try {
       const config: Record<string, unknown> = { mcp: {} }
 
-      await createConfigHandler(directory)(config)
+      await createScopedConfigHandler(directory)(config)
 
       expect(config.mcp).toEqual(builtinMcpWithWebsearch({ enabled: false }))
     } finally {
@@ -344,7 +380,7 @@ describe("createConfigHandler", () => {
     try {
       const config: Record<string, unknown> = { mcp: {} }
 
-      await createConfigHandler(directory)(config)
+      await createScopedConfigHandler(directory)(config)
 
       expect(config.mcp).toEqual(builtinMcp())
     } finally {
@@ -358,7 +394,7 @@ describe("createConfigHandler", () => {
     try {
       const config: Record<string, unknown> = { mcp: {} }
 
-      await createConfigHandler(directory)(config)
+      await createScopedConfigHandler(directory)(config)
 
       expect(config.mcp).toEqual(builtinMcp())
     } finally {
@@ -372,7 +408,7 @@ describe("createConfigHandler", () => {
     try {
       const config: Record<string, unknown> = { mcp: {} }
 
-      await createConfigHandler(directory)(config)
+      await createScopedConfigHandler(directory)(config)
 
       expect(config.mcp).toEqual(builtinMcp())
     } finally {
@@ -386,7 +422,7 @@ describe("createConfigHandler", () => {
     try {
       const config: Record<string, unknown> = { mcp: {} }
 
-      await createConfigHandler(directory)(config)
+      await createScopedConfigHandler(directory)(config)
 
       expect(config.mcp).toEqual(builtinMcp())
     } finally {
@@ -400,7 +436,7 @@ describe("createConfigHandler", () => {
     try {
       const config: Record<string, unknown> = { mcp: {} }
 
-      await createConfigHandler(directory)(config)
+      await createScopedConfigHandler(directory)(config)
 
       expect(config.mcp).toEqual(builtinMcp())
     } finally {
@@ -417,7 +453,7 @@ describe("createConfigHandler", () => {
     try {
       const config: Record<string, unknown> = { mcp: {} }
 
-      await createConfigHandler(directory, fallbackDirectory)(config)
+      await createScopedConfigHandler(directory, fallbackDirectory)(config)
 
       expect(config.mcp).toEqual(builtinMcpWithWebsearch())
     } finally {
@@ -440,7 +476,7 @@ describe("createConfigHandler", () => {
       },
     }
 
-    await createConfigHandler("/test/directory")(config)
+    await createScopedConfigHandler("/test/directory")(config)
 
     expect(config.mcp).toEqual({
       ...builtinMcp(),
@@ -469,7 +505,7 @@ describe("createConfigHandler", () => {
         },
       }
 
-      await createConfigHandler(directory)(config)
+      await createScopedConfigHandler(directory)(config)
 
       expect(config.mcp).toEqual({
         ...builtinMcpWithWebsearch(),
@@ -493,7 +529,7 @@ describe("createConfigHandler", () => {
       },
     }
 
-    await createConfigHandler("/test/directory")(config)
+    await createScopedConfigHandler("/test/directory")(config)
 
     expect(config.mcp).toEqual({
       ...builtinMcp(),
@@ -508,7 +544,7 @@ describe("createConfigHandler", () => {
       mcp: ["not", "an", "object"],
     }
 
-    await createConfigHandler("/test/directory")(config)
+    await createScopedConfigHandler("/test/directory")(config)
 
     expect(config.mcp).toEqual(builtinMcp())
   })
@@ -522,7 +558,7 @@ describe("createConfigHandler", () => {
       },
     }
 
-    await createConfigHandler("/test/directory")(config)
+    await createScopedConfigHandler("/test/directory")(config)
 
     expect(config.mcp).toEqual({
       ...builtinMcp(),
@@ -546,7 +582,7 @@ describe("createConfigHandler", () => {
       },
     }
 
-    await createConfigHandler("/test/directory")(config)
+    await createScopedConfigHandler("/test/directory")(config)
 
     expect(config.mcp).toEqual({
       ...builtinMcp(),
@@ -564,7 +600,7 @@ describe("createConfigHandler", () => {
   it("does not leak builtin mutations across handler calls", async () => {
     const firstConfig: Record<string, unknown> = { mcp: {} }
     const secondConfig: Record<string, unknown> = { mcp: {} }
-    const handler = createConfigHandler("/test/directory")
+    const handler = createScopedConfigHandler("/test/directory")
 
     await handler(firstConfig)
     ;((firstConfig.mcp as Record<string, unknown>).sequential_thinking as { command: string[] }).command[0] =
@@ -583,7 +619,7 @@ describe("createConfigHandler", () => {
     try {
       const config: Record<string, unknown> = { mcp: {} }
 
-      await createConfigHandler("/test/directory", undefined, { moduleDir })(config)
+      await createScopedConfigHandler("/test/directory", undefined, { moduleDir })(config)
 
       expect(config.mcp).toEqual(builtinMcp())
       expect(config.skills).toEqual({
@@ -607,7 +643,7 @@ describe("createConfigHandler", () => {
         },
       }
 
-      await createConfigHandler("/test/directory", undefined, { moduleDir })(config)
+      await createScopedConfigHandler("/test/directory", undefined, { moduleDir })(config)
 
       expect(config.mcp).toEqual(builtinMcp())
       expect(config.skills).toEqual({
@@ -624,7 +660,7 @@ describe("createConfigHandler", () => {
       unknown
     >
 
-    await createConfigHandler("/test/directory")(config)
+    await createScopedConfigHandler("/test/directory")(config)
 
     expect(config.mcp).toEqual({
       ...builtinMcp(),
@@ -641,10 +677,10 @@ describe("createConfigHandler", () => {
     expect(({} as Record<string, unknown>).polluted).toBeUndefined()
   })
 
-  it("registers builtin plugin-managed agents into config.agent", async () => {
+  it("registers builtin plugin-managed agents into config.agent including Debugger", async () => {
     const config: Record<string, unknown> = {}
 
-    await createConfigHandler("/test/directory")(config)
+    await createScopedConfigHandler("/test/directory")(config)
 
     expect(config.agent).toEqual({
       ...builtinManagedAgents(),
@@ -652,10 +688,16 @@ describe("createConfigHandler", () => {
     })
   })
 
+  it("builtin managed agent keys match runtime builtin registry keys", async () => {
+    const builtinRegistry = await loadBuiltinAgentRegistry(join(import.meta.dir, ".."))
+
+    expect(Object.keys(builtinManagedAgents()).sort()).toEqual(builtinRegistry.map((agent) => agent.name).sort())
+  })
+
   it("injects builtin default color for plugin-managed agents", async () => {
     const config: Record<string, unknown> = {}
 
-    await createConfigHandler("/test/directory")(config)
+    await createScopedConfigHandler("/test/directory")(config)
 
     expect((config.agent as Record<string, Record<string, unknown>>).orchestrator).toEqual(
       builtinOrchestratorAgent(),
@@ -678,7 +720,7 @@ describe("createConfigHandler", () => {
     try {
       const config: Record<string, unknown> = {}
 
-      await createConfigHandler(directory)(config)
+      await createScopedConfigHandler(directory)(config)
 
       expect(config.agent).toEqual({
         ...builtinManagedAgents({
@@ -722,7 +764,7 @@ describe("createConfigHandler", () => {
     try {
       const config: Record<string, unknown> = {}
 
-      await createConfigHandler(directory)(config)
+      await createScopedConfigHandler(directory)(config)
 
       expect((config.agent as Record<string, unknown>).explorer).toMatchObject({
         ...builtinExplorerAgent({
@@ -761,7 +803,7 @@ describe("createConfigHandler", () => {
     try {
       const config: Record<string, unknown> = {}
 
-      await createConfigHandler(directory)(config)
+      await createScopedConfigHandler(directory)(config)
 
       expect(config.agent).toEqual({
         ...builtinManagedAgents({
@@ -786,7 +828,7 @@ describe("createConfigHandler", () => {
       },
     }
 
-    await createConfigHandler("/test/directory")(config)
+    await createScopedConfigHandler("/test/directory")(config)
 
     expect(config.agent).toEqual({
       custom: {
@@ -824,7 +866,7 @@ describe("createConfigHandler", () => {
         },
       }
 
-      await createConfigHandler(directory)(config)
+      await createScopedConfigHandler(directory)(config)
 
       expect(config.agent).toEqual({
         ...builtinManagedAgents({
@@ -859,7 +901,7 @@ describe("createConfigHandler", () => {
         },
       }
 
-      await createConfigHandler(directory)(config)
+      await createScopedConfigHandler(directory)(config)
 
       expect(config.agent).toEqual({
         ...builtinManagedAgents(),
@@ -888,7 +930,7 @@ describe("createConfigHandler", () => {
         },
       }
 
-      await createConfigHandler(directory)(config)
+      await createScopedConfigHandler(directory)(config)
 
       expect(config.agent).toEqual({
         ...builtinManagedAgents({
@@ -920,7 +962,7 @@ describe("createConfigHandler", () => {
         },
       }
 
-      await createConfigHandler(directory)(config)
+      await createScopedConfigHandler(directory)(config)
 
       expect(config.agent).toEqual({
         ...builtinManagedAgents({
@@ -953,7 +995,7 @@ describe("createConfigHandler", () => {
         },
       }
 
-      await createConfigHandler(directory)(config)
+      await createScopedConfigHandler(directory)(config)
 
       expect((config.agent as Record<string, unknown>).explorer).toMatchObject({
         ...builtinExplorerAgent({
@@ -981,7 +1023,7 @@ describe("createConfigHandler", () => {
     try {
       const config: Record<string, unknown> = {}
 
-      await createConfigHandler(directory)(config)
+      await createScopedConfigHandler(directory)(config)
 
       expect(config.agent).toEqual({
         ...builtinManagedAgents(),
@@ -1012,7 +1054,7 @@ describe("createConfigHandler", () => {
         },
       }
 
-      await createConfigHandler(directory)(config)
+      await createScopedConfigHandler(directory)(config)
 
       expect(config.agent).toEqual({
         ...builtinManagedAgents(),
@@ -1043,7 +1085,7 @@ describe("createConfigHandler", () => {
         },
       }
 
-      await createConfigHandler(directory)(config)
+      await createScopedConfigHandler(directory)(config)
 
       expect(config.agent).toEqual({
         ...builtinManagedAgents(),
@@ -1079,7 +1121,7 @@ describe("createConfigHandler", () => {
       },
     }
 
-    await createConfigHandler("/test/directory")(config)
+    await createScopedConfigHandler("/test/directory")(config)
 
     expect(config.agent).toEqual({
       ...builtinManagedAgents(),

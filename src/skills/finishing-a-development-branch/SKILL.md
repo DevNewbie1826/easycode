@@ -19,6 +19,8 @@ Guide completion of development work by presenting clear options and handling th
 
 **Before presenting options, verify tests pass:**
 
+Before presenting options, require `assay` PASS plus the current implementation plan, latest assay review artifact, and active branch/worktree context.
+
 ```bash
 # Run the project's test suite
 npm test / cargo test / pytest / go test ./...
@@ -173,6 +175,19 @@ git worktree remove <worktree-path>
 **For Option 2:** Keep the branch and worktree.
 
 **For Option 3:** Keep the branch and worktree.
+
+## Terminal Completion Contract
+
+Todo clearing must occur only after the selected option's last required non-`todowrite` action is complete and its result is captured.
+
+| Finishing option | Last required non-TodoWrite action before completion | Terminal state reached when… | Exact todo-clear point |
+|---|---|---|---|
+| 1. Merge locally | merged-result verification and any required worktree cleanup complete | merge succeeded, post-merge tests passed, and cleanup/reporting is done | Clear immediately after cleanup/report result is captured and before the final completion response |
+| 2. Push and create PR | `gh pr create` succeeds and PR URL/result is captured | PR is created and preservation report is ready | Clear immediately after PR URL/result is captured and before the final completion response |
+| 3. Keep branch as-is | final preservation report is prepared | the preservation decision is reported and no more workflow-owned tool calls remain | Clear immediately before the final completion response |
+| 4. Discard this work | confirmation handling, branch deletion, and any required worktree cleanup complete | discard was explicitly confirmed and cleanup/reporting is done | Clear immediately after cleanup/report result is captured and before the final completion response |
+
+Never clear the todo list before `git pull`, `git merge`, `gh pr create`, `git branch -D`, `git worktree remove`, or any other last required operational step for the selected option.
 
 ## Quick Reference
 

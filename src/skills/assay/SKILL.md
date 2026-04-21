@@ -118,6 +118,8 @@ If fresh verification or final review surfaces a defect, regression, or unexplai
 - the work returns to `materialize`
 - any new fix attempt should route through `systematic-debugging` before code changes begin
 
+When returning to `materialize` for implementation fixes, require the next pass to read the saved assay review first, stay on the same plan/worktree by default, and invoke `systematic-debugging` before new fixes.
+
 Assay remains a judgment skill, not a repair skill.
 
 ---
@@ -211,6 +213,8 @@ Default save location:
 
 This review record is an official workflow artifact.
 Treat it as part of the repository’s documented execution history.
+
+This review record is the canonical assay-owned artifact in the workflow chain.
 
 It is not incidental runtime output.
 It is not a disposable temporary log.

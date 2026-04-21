@@ -391,7 +391,7 @@ Use this structure for the finalized plan:
 
 ## Execution Policy
 - **Workspace isolation**: use `using-git-worktrees` before implementation begins
-- **Task tracking**: use `todo-sync` before work starts, after each completed task, and after all work is finished
+- **Task tracking**: use `todo-sync` before work starts, after each completed task, and at true workflow completion
 - **Implementation discipline**: `code-builder` defaults to `test-driven-development` when feasible
 - **Failure handling**: use `systematic-debugging` before attempting fixes for bugs, failed verification, regressions, or unexpected behavior
 - **Completion path**: after `assay` returns PASS, proceed to `finishing-a-development-branch`
