@@ -129,6 +129,14 @@ Tests passing (<N> tests, 0 failures)
 Ready to implement <feature-name>
 ```
 
+Required success report fields:
+- base branch
+- feature branch
+- full worktree path
+- setup commands run or skipped
+- baseline verification command and result
+- ready/blocker conclusion
+
 ## Quick Reference
 
 | Situation | Action |

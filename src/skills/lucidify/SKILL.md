@@ -199,6 +199,9 @@ Evidence must also be in one of these states:
 - explicitly not needed
 
 Handoff is not allowed if evidence is required but not yet completed.
+Handoff is blocked if major contradictions remain unresolved.
+Handoff is blocked if required evidence is still missing.
+Handoff is blocked if scope is still unstable enough that `crystallize` would have to guess.
 
 ---
 

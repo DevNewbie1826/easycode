@@ -290,6 +290,11 @@ When revising a plan after review feedback:
 - do not append fragmented notes to the end of the old plan
 - rewrite the plan as one stronger coherent document
 
+When describing workflow checkpoints or execution follow-through in a plan, distinguish:
+- ongoing todo synchronization during active work
+- backward-route reopening when review or verification sends execution to an earlier task
+- terminal todo clearing only after the workflow reaches its true finishing clear point
+
 In particular:
 - all `plan-checker` blockers must be fixed
 - high-risk `plan-challenger` findings should be prioritized
