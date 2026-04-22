@@ -4,6 +4,15 @@ import { getTodoArray } from "./todo-array"
 import { buildTodoSnapshot } from "./todo-snapshot"
 import type { TodoGuardRoleResolver, TodoToolGuardStateStore } from "./types"
 
+function getRequestedSkillName(args: unknown): string | undefined {
+  if (!args || typeof args !== "object" || !("name" in args)) {
+    return undefined
+  }
+
+  const { name } = args as { name?: unknown }
+  return typeof name === "string" ? name : undefined
+}
+
 export function createTodoToolGuardBefore(
   ctx: PluginInput,
   stateStore: TodoToolGuardStateStore,
@@ -11,7 +20,7 @@ export function createTodoToolGuardBefore(
 ) {
   return async function todoToolGuardBefore(
     input: { tool: string; sessionID: string; callID: string },
-    _output: { args: unknown },
+    output: { args: unknown },
   ): Promise<void> {
     if (roleResolver.getRole(input.sessionID) === "subagent") {
       return
@@ -24,6 +33,10 @@ export function createTodoToolGuardBefore(
       } catch {
         // todowrite stays allowed even if the snapshot cannot be loaded
       }
+      return
+    }
+
+    if (input.tool === "skill" && getRequestedSkillName(output.args) === "todo-sync") {
       return
     }
 

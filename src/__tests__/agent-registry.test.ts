@@ -190,15 +190,24 @@ describe("orchestrator agent definition", () => {
     expect(loadAgentPrompt("orchestrator-prompt.md")).toBe(orchestratorAgent.prompt)
   })
 
-  it("exposes builtin primary mode with optional defaults", () => {
+  it("exposes deny-first todo-sync skill defaults for orchestrator", () => {
     expect(orchestratorAgent.mode).toBe("primary")
     expect(orchestratorAgent.defaults).toEqual({
       color: "#6A5CFF",
       permission: {
         apply_patch: "deny",
         question: "allow",
+        skill: {
+          "*": "deny",
+          "todo-sync": "allow",
+        },
       },
     })
+
+    expect(Object.entries(orchestratorAgent.defaults?.permission?.skill ?? {})).toEqual([
+      ["*", "deny"],
+      ["todo-sync", "allow"],
+    ])
   })
 })
 

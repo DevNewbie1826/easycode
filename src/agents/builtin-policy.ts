@@ -22,6 +22,10 @@ export const builtinAgentPermissionPolicy: Record<
   orchestrator: {
     question: "allow",
     apply_patch: "deny",
+    skill: {
+      "*": "deny",
+      "todo-sync": "allow",
+    },
   },
   explorer: {
     ...denyEditPatchEtc,
