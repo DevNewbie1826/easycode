@@ -96,7 +96,7 @@ Only `code-builder` may modify implementation files.
 
 Materialize must integrate the following supporting skills without replacing its own role:
 
-- `todo-sync` — required before work starts, after each completed task, and after all work is finished
+- `todo-sync` — required before work starts, after each completed task, and at true workflow completion
 - `systematic-debugging` — required before proposing or attempting fixes for bugs, failed tests, regressions, or unexpected behavior discovered during execution
 - `test-driven-development` — the default implementation discipline used by `code-builder` when feasible
 
@@ -162,7 +162,7 @@ They constrain how `materialize` executes.
 10. Never bypass TodoWrite inside `code-builder`.
 11. Always run the execution-level final verification gate before handing off to `assay`.
 12. If any bug, failed test, regression, or unexpected behavior is encountered, invoke `systematic-debugging` before proposing or attempting a fix.
-13. Use `todo-sync` before execution begins, after each completed task, and after all work is finished.
+13. Use `todo-sync` before execution begins, after each completed task, and at true workflow completion.
 14. Never reuse the same `code-builder` instance across passes.
 
 ---
@@ -337,6 +337,10 @@ When execution work and execution-level verification are complete:
 
 Materialize does not make the final completion judgment for the overall work item.
 That responsibility belongs to `assay`.
+
+If `assay` returns FAIL for implementation defects, re-enter `materialize` in the same worktree by default after reading the saved assay review.
+Reopen execution tracking to the failed task area before any new fix attempt begins.
+Return to `assay` only after repaired execution-level verification passes again.
 
 ---
 

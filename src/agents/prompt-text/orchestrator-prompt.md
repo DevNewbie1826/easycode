@@ -4,6 +4,9 @@
 
     `lucidify → crystallize → using-git-worktrees → materialize → assay → finishing-a-development-branch`
 
+    Canonical chain form:
+    `lucidify` → `crystallize` → `using-git-worktrees` → `materialize` → `assay` → `finishing-a-development-branch`
+
     Your only job is to:
     - determine workflow state
     - choose the correct next stage
@@ -143,16 +146,11 @@
     - `systematic-debugging`
   </workflow_chain>
 
-  <assay_artifact_policy>
-    Review artifacts produced by `assay` are official workflow artifacts.
-  
-    By default:
-    - save assay review records in the repository root under `docs/easycode/reviews/`
-    - treat them as versioned workflow documents
-    - preserve them as part of the plan-to-validation artifact chain
-  
-    Do not treat assay review records as disposable runtime logs by default.
-  </assay_artifact_policy>
+  <assay_artifact_handoff>
+    `assay` owns the detailed review-record policy.
+
+    The orchestrator should preserve and pass along the latest saved assay review artifact without redefining assay's ownership contract.
+  </assay_artifact_handoff>
 
   <routing_policy>
     Route by actual workflow state, never by habit.
@@ -162,7 +160,7 @@
     Use `using-git-worktrees` only when an approved Implementation Plan exists and execution is about to begin.
     Use `materialize` only when an approved Implementation Plan exists and an isolated worktree is already prepared.
     Use `assay` only when implementation and execution-level verification are complete.
-    Use `finishing-a-development-branch` only when `assay` returns PASS.
+    Use `finishing-a-development-branch` only when `assay` returns PASS and the current implementation plan, latest assay review artifact, and active branch/worktree context are available.
   </routing_policy>
 
   <automatic_transition_policy>

@@ -24,10 +24,10 @@ function createDirectoryWithEasyCodeConfig(content: string) {
 
   return directory
 }
-
 describe("EasyCodePlugin", () => {
   it("wires the config handler and logs startup", async () => {
     const logEntries: Array<Record<string, unknown>> = []
+    const directory = createDirectoryWithEasyCodeConfig(JSON.stringify({ mcp: { websearch: { enabled: true } } }))
     const input = {
       client: {
         app: {
@@ -38,91 +38,99 @@ describe("EasyCodePlugin", () => {
         },
       },
       project: "test-project",
-      directory: "/tmp/easycode-project",
-      worktree: "/tmp/easycode-worktree",
+      directory,
+      worktree: directory,
       serverUrl: new URL("https://example.com"),
       $: {} as PluginInput["$"],
     } as unknown as PluginInput
 
-    const hooks = await EasyCodePlugin(input)
-    const config: Config = {
-      mcp: {
+    try {
+      const hooks = await EasyCodePlugin(input)
+      const config: Config = {
+        mcp: {
+          custom_server: {
+            type: "remote",
+            url: "https://example.com/custom-server",
+          },
+        },
+      }
+
+      expect(hooks.config).toBeFunction()
+
+      await hooks.config?.(config)
+
+      expect(config.mcp as Record<string, unknown>).toEqual({
+        context7: {
+          type: "remote",
+          url: "https://mcp.context7.com/mcp",
+        },
+        grep_app: {
+          type: "remote",
+          url: "https://mcp.grep.app",
+        },
+        sequential_thinking: {
+          type: "local",
+          command: ["npx", "-y", "@modelcontextprotocol/server-sequential-thinking"],
+        },
+        websearch: {
+          type: "remote",
+          url: "https://mcp.exa.ai/mcp",
+        },
         custom_server: {
           type: "remote",
           url: "https://example.com/custom-server",
         },
-      },
-    }
-
-    expect(hooks.config).toBeFunction()
-
-    await hooks.config?.(config)
-
-    expect(config.mcp as Record<string, unknown>).toEqual({
-      context7: {
-        type: "remote",
-        url: "https://mcp.context7.com/mcp",
-      },
-      grep_app: {
-        type: "remote",
-        url: "https://mcp.grep.app",
-      },
-      sequential_thinking: {
-        type: "local",
-        command: ["npx", "-y", "@modelcontextprotocol/server-sequential-thinking"],
-      },
-      custom_server: {
-        type: "remote",
-        url: "https://example.com/custom-server",
-      },
-    })
-    expect((config.agent as Record<string, unknown>).explorer).toMatchObject({
-      permission: {
-        edit: "deny",
-        task: "deny",
-      },
-    })
-    expect(hooks.tool).toBeDefined()
-    expect(Object.keys(hooks.tool ?? {})).not.toHaveLength(0)
-    expect(hooks["tool.execute.before"]).toBeFunction()
-    expect(hooks["tool.execute.after"]).toBeFunction()
-    expect(hooks.event).toBeFunction()
-    expect(hooks["experimental.chat.messages.transform"]).toBeFunction()
-
-    const transformOutput: Parameters<NonNullable<Hooks["experimental.chat.messages.transform"]>>[1] = {
-      messages: [
-        {
-          info: {
-            id: "user-1",
-            sessionID: "session-1",
-            role: "user",
-            time: {
-              created: 1,
-            },
-            agent: "coder",
-            model: {
-              providerID: "test-provider",
-              modelID: "test-model",
-            },
-          },
-          parts: [{ id: "user-1-hello", sessionID: "session-1", messageID: "user-1", type: "text", text: "hello" }],
+      })
+      expect((config.agent as Record<string, unknown>).explorer).toMatchObject({
+        permission: {
+          edit: "deny",
+          task: "deny",
         },
-      ],
+      })
+      expect(hooks.tool).toBeDefined()
+      expect(Object.keys(hooks.tool ?? {})).not.toHaveLength(0)
+      expect(hooks["tool.execute.before"]).toBeFunction()
+      expect(hooks["tool.execute.after"]).toBeFunction()
+      expect(hooks.event).toBeFunction()
+      expect(hooks["experimental.chat.messages.transform"]).toBeFunction()
+
+      const transformOutput: Parameters<NonNullable<Hooks["experimental.chat.messages.transform"]>>[1] = {
+        messages: [
+          {
+            info: {
+              id: "user-1",
+              sessionID: "session-1",
+              role: "user",
+              time: {
+                created: 1,
+              },
+              agent: "coder",
+              model: {
+                providerID: "test-provider",
+                modelID: "test-model",
+              },
+            },
+            parts: [{ id: "user-1-hello", sessionID: "session-1", messageID: "user-1", type: "text", text: "hello" }],
+          },
+        ],
+      }
+
+      await hooks["experimental.chat.messages.transform"]?.({}, transformOutput)
+
+      expect(transformOutput.messages[0]?.parts).toHaveLength(2)
+      expect(transformOutput.messages[0]?.parts[0]).toMatchObject({
+        type: "text",
+        text: bootstrapMarkdown,
+        synthetic: true,
+      })
+      expect(transformOutput.messages[0]?.parts[1]).toMatchObject({
+        type: "text",
+        text: "hello",
+      })
+      expect(logEntries).toHaveLength(1)
+    } finally {
+      rmSync(directory, { recursive: true, force: true })
     }
-
-    await hooks["experimental.chat.messages.transform"]?.({}, transformOutput)
-
-    expect(transformOutput.messages[0]?.parts).toHaveLength(2)
-    expect(transformOutput.messages[0]?.parts[0]).toMatchObject({
-      type: "text",
-      text: bootstrapMarkdown,
-      synthetic: true,
-    })
-    expect(transformOutput.messages[0]?.parts[1]).toMatchObject({
-      type: "text",
-      text: "hello",
-    })
-    expect(logEntries).toHaveLength(1)
   })
 
   it("wires agent permission overrides from easycode.json through the plugin config hook", async () => {
