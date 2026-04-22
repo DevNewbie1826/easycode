@@ -389,6 +389,60 @@ describe("EasyCodePlugin", () => {
     ).rejects.toThrow(TODO_REQUIRED_BLOCK_MESSAGE)
   })
 
+  it("allows only exact todo-sync skill bootstrap before the first todo exists", async () => {
+    const input = {
+      client: {
+        session: {
+          todo: async () => ({ data: [] }),
+          prompt: async () => ({}),
+        },
+        app: {
+          log() {
+            return Promise.resolve()
+          },
+        },
+      },
+      project: "test-project",
+      directory: "/tmp/easycode-project",
+      worktree: "/tmp/easycode-worktree",
+      serverUrl: new URL("https://example.com"),
+      $: {} as PluginInput["$"],
+    } as unknown as PluginInput
+
+    const hooks = await EasyCodePlugin(input)
+
+    await hooks.event?.({
+      event: {
+        type: "message.updated",
+        properties: {
+          sessionID: "session-orchestrator",
+          info: { id: "session-orchestrator", agent: "orchestrator" },
+        },
+      },
+    } as any)
+
+    await expect(
+      hooks["tool.execute.before"]?.(
+        { tool: "skill", sessionID: "session-orchestrator", callID: "call-allow" },
+        { args: { name: "todo-sync" } },
+      ),
+    ).resolves.toBeUndefined()
+
+    await expect(
+      hooks["tool.execute.before"]?.(
+        { tool: "skill", sessionID: "session-orchestrator", callID: "call-block-skill" },
+        { args: { name: "assay" } },
+      ),
+    ).rejects.toThrow(TODO_REQUIRED_BLOCK_MESSAGE)
+
+    await expect(
+      hooks["tool.execute.before"]?.(
+        { tool: "search_code", sessionID: "session-orchestrator", callID: "call-block-tool" },
+        { args: {} },
+      ),
+    ).rejects.toThrow(TODO_REQUIRED_BLOCK_MESSAGE)
+  })
+
   it("keeps idle continuation prompts active for subagent sessions", async () => {
     const promptCalls: Array<unknown> = []
     const input = {
@@ -769,4 +823,5 @@ describe("EasyCodePlugin", () => {
       rmSync(localDir, { recursive: true, force: true })
     }
   })
+
 })

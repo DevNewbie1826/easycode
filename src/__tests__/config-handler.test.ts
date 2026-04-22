@@ -704,6 +704,26 @@ describe("createConfigHandler", () => {
     )
   })
 
+  it("injects deny-first todo-sync skill permission into merged orchestrator config", async () => {
+    const config: Record<string, unknown> = {}
+
+    await createScopedConfigHandler("/test/directory")(config)
+
+    expect((config.agent as Record<string, Record<string, unknown>>).orchestrator).toMatchObject(
+      builtinOrchestratorAgent(),
+    )
+
+    expect(
+      Object.entries(
+        ((config.agent as Record<string, { permission?: { skill?: Record<string, string> } }>).orchestrator?.permission
+          ?.skill ?? {}) as Record<string, string>,
+      ),
+    ).toEqual([
+      ["*", "deny"],
+      ["todo-sync", "allow"],
+    ])
+  })
+
   it("binds model, variant, and temperature for plugin-managed agents from easycode.json", async () => {
     const directory = createDirectoryWithEasyCodeConfig(
       JSON.stringify({

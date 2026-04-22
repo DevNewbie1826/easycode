@@ -50,6 +50,38 @@ describe("todo-tool-guard", () => {
     ).resolves.toBeUndefined()
   })
 
+  it("allows only the exact todo-sync skill before the first todo exists", async () => {
+    const guard = createTodoToolGuard(createCtx(async () => []), {
+      roleResolver: { getRole: () => "unknown" },
+    })
+
+    await expect(
+      guard.before(
+        { tool: "skill", sessionID: "session-1", callID: "call-allow" },
+        { args: { name: "todo-sync" } },
+      ),
+    ).resolves.toBeUndefined()
+
+    const blockedArgs = [
+      {},
+      { name: 42 },
+      { name: "assay" },
+      { name: "todo-sync-extra" },
+      { name: " todo-sync" },
+      { name: "todo-sync " },
+      { name: "Todo-Sync" },
+    ]
+
+    for (const [index, args] of blockedArgs.entries()) {
+      await expect(
+        guard.before(
+          { tool: "skill", sessionID: "session-1", callID: `call-block-${index}` },
+          { args },
+        ),
+      ).rejects.toThrow(TODO_REQUIRED_BLOCK_MESSAGE)
+    }
+  })
+
   it("blocks unknown sessions when todo list is empty", async () => {
     const guard = createTodoToolGuard(createCtx(async () => []), {
       roleResolver: { getRole: () => "unknown" },
