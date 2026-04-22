@@ -11,12 +11,9 @@ type RuntimePermissionRule = {
   action: RuntimePermissionAction
 }
 
-const pinnedPluginPath = "/Users/mirage/go/src/easycode/.worktrees/todo-sync-pre-todo-skill-loading"
+const pinnedPluginPath = "/Users/mirage/go/src/easycode/.worktrees/feature-restore-orchestrator-skill-visibility"
 
-const expectedSkillRules: RuntimePermissionRule[] = [
-  { permission: "skill", pattern: "*", action: "deny" },
-  { permission: "skill", pattern: "todo-sync", action: "allow" },
-]
+const expectedSkillRules: RuntimePermissionRule[] = []
 
 function unwrapAgentsPayload(value: unknown) {
   if (Array.isArray(value)) {
@@ -57,7 +54,7 @@ function assertPinnedPluginPath() {
   return pluginPath
 }
 
-function assertExactSkillRules(permission: unknown): RuntimePermissionRule[] {
+function assertZeroSkillRules(permission: unknown): RuntimePermissionRule[] {
   if (!Array.isArray(permission)) {
     throw new Error("Runtime probe returned non-array orchestrator.permission")
   }
@@ -71,9 +68,9 @@ function assertExactSkillRules(permission: unknown): RuntimePermissionRule[] {
       && typeof (rule as { action?: unknown }).action === "string",
   )
 
-  if (JSON.stringify(skillRules) !== JSON.stringify(expectedSkillRules)) {
+  if (skillRules.length !== 0) {
     throw new Error(
-      `Expected exact runtime skill rules ${JSON.stringify(expectedSkillRules)}, received ${JSON.stringify(skillRules)}`,
+      `Expected zero orchestrator skill rules, received ${JSON.stringify(skillRules)}`,
     )
   }
 
@@ -129,7 +126,7 @@ try {
     throw new Error("Returned orchestrator does not match the plugin-managed agent under test")
   }
 
-  const skillRules = assertExactSkillRules(orchestrator.permission)
+  const skillRules = assertZeroSkillRules(orchestrator.permission)
 
   console.log(
     JSON.stringify({
